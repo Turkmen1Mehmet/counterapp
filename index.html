@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dynamic Trend Counters with Individual Totals</title>
+  <style>
+    .input-number {
+      font-size: 40px;
+      text-align: center;
+    }
+    .mounter-container {
+      display: flex;
+      gap: 20px;
+      margin-top: 15px;
+      justify-content: center;
+    }
+    .mounter {
+      display: flex; /* Flex container yap */
+      flex-direction: column; /* Dikey olarak düzenle */
+      align-items: center; /* Yatayda ortala */
+      justify-content: center; /* Dikeyde ortala */
+      border: 1px solid #ddd;
+      padding: 50px;
+      border-radius: 5px;
+      text-align: center;
+      width: 100px;
+    }
+    button {
+      touch-action: manipulation;
+      font-size: 80px;
+      text-align: center;
+      height: 70px;
+      width: 70px;
+    }
+    .reset-button {
+      font-size: 20px;
+      margin-left: 10px;
+    }
+    .total {
+      font-size: 40px;
+      text-align: center;
+    }
+    #overall-total {
+      font-size: 80px;
+      text-align: center;
+    }
+    .select-container {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .selected-items {
+      text-align: center;
+      font-size: 20px;
+      margin-top: 10px;
+    }
+    #all-counters {
+      display: none; /* Default olarak gizle */
+    }
+  </style>
+</head>
+<body>
+
+  <center>
+    <div class="select-container">
+      <div>
+        <label for="select1">Select 1</label>
+        <select id="select1" onchange="displaySelectedItems()">
+          <option value="">Select...</option>
+          <option value="Option 1">Option 1</option>
+          <option value="Option 2">Option 2</option>
+          <option value="Option 3">Option 3</option>
+        </select>
+        <div id="selected1" class="selected-items"></div>
+      </div>
+      <div>
+        <label for="select2">Select 2</label>
+        <select id="select2" onchange="displaySelectedItems()">
+          <option value="">Select...</option>
+          <option value="Option A">Option A</option>
+          <option value="Option B">Option B</option>
+          <option value="Option C">Option C</option>
+        </select>
+        <div id="selected2" class="selected-items"></div>
+      </div>
+    </div>
+
+    <div id="all-counters"></div> <!-- Dinamik sayaç setleri burada oluşturulacak -->
+
+    <div>
+      <h1>Overall Total</h1>
+      <div id="overall-total">0</div>
+    </div>
+
+    <button id="download-btn" onclick="downloadExcel()">İndir</button>
+  </center>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
+  <script>
+    const numSets = 5; // Kaç tane sayaç seti oluşturulacağı
+    const allCounters = document.getElementById('all-counters');
+
+    // Tarayıcıda depolanan sayaç ve girdi değerlerini yükle
+    function loadState() {
+      for (let i = 1; i <= numSets; i++) {
+        const trendadiId = `trendadi${i}`;
+        const trendId = `trend-value-${i}`;
+        const keyId = `key-value-${i}`;
+        const timeId = `time-value-${i}`;
+        const nosId = `nos-value-${i}`;
+        const totalId = `set-total-${i}`;
+
+        const savedTrendadi = localStorage.getItem(trendadiId) || `TREND&KUMAŞ ${i}`;
+        const savedTrend = parseInt(localStorage.getItem(trendId), 10) || 0;
+        const savedKey = parseInt(localStorage.getItem(keyId), 10) || 0;
+        const savedTime = parseInt(localStorage.getItem(timeId), 10) || 0;
+        const savedNos = parseInt(localStorage.getItem(nosId), 10) || 0;
+        const setTotal = savedTrend + savedKey + savedTime + savedNos;
+
+        // Sayaç seti HTML'sini oluştur
+        const counterSet = `
+          <input type="text" id="${trendadiId}" name="${trendadiId}" value="${savedTrendadi}" class="input-number" oninput="saveInput('${trendadiId}', this.value)"><br>
+          <div class="mounter-container">
+            <div class="mounter">
+              <h1>TREND</h1>
+              <div id="${trendId}">${savedTrend}</div>
+              <button onclick="changeValue('${trendId}', -1, '${totalId}', event)">-</button>
+              <button onclick="changeValue('${trendId}', 1, '${totalId}', event)">+</button>
+            </div>
+
+            <div class="mounter">
+              <h1>KEY</h1>
+              <div id="${keyId}">${savedKey}</div>
+              <button onclick="changeValue('${keyId}', -1, '${totalId}', event)">-</button>
+              <button onclick="changeValue('${keyId}', 1, '${totalId}', event)">+</button>
+            </div>
+
+            <div class="mounter">
+              <h1>TIME</h1>
+              <div id="${timeId}">${savedTime}</div>
+              <button onclick="changeValue('${timeId}', -1, '${totalId}', event)">-</button>
+              <button onclick="changeValue('${timeId}', 1, '${totalId}', event)">+</button>
+            </div>
+
+            <div class="mounter">
+              <h1>NOS</h1>
+              <div id="${nosId}">${savedNos}</div>
+              <button onclick="changeValue('${nosId}', -1, '${totalId}', event)">-</button>
+              <button onclick="changeValue('${nosId}', 1, '${totalId}', event)">+</button>
+            </div>
+          </div>
+          <h2>Set Total: <span id="${totalId}" class="total">${setTotal}</span>
+          <button class="reset-button" onclick="resetSet(${i}, '${totalId}')">Reset</button></h2><br>
+        `;
+
+        // Tüm seti sayfaya ekle
+        allCounters.innerHTML += counterSet;
+      }
+
+      updateOverallTotal(); // Sayfa yüklenirken genel toplam güncellenir
+    }
+
+    // Sayaç değerini değiştir ve ilgili set toplamını güncelle
+    let debounceTimer;
+    function changeValue(id, delta, totalId, event) {
+      event.preventDefault(); // Zoom olayını engelle
+
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      debounceTimer = setTimeout(() => {
+        let element = document.getElementById(id);
+        let currentValue = parseInt(element.innerText, 10);
+        let newValue = currentValue + delta;
+
+        if (newValue < 0) {
+          newValue = 0;
+        }
+
+        element.innerText = newValue;
+        localStorage.setItem(id, newValue); // Değeri yerel depoda sakla
+        updateSetTotal(totalId);
+      }, 50); // 50 ms gecikme ile debouncing
+    }
+
+    // Girdi alanındaki değeri yerel depoda sakla
+    function saveInput(inputId, value) {
+      localStorage.setItem(inputId, value);
+    }
+
+    // Belirtilen sayaç setinin toplamını güncelle
+    function updateSetTotal(totalId) {
+      const setIndex = totalId.match(/\d+/)[0];
+      const trend = parseInt(document.getElementById(`trend-value-${setIndex}`).innerText, 10);
+      const key = parseInt(document.getElementById(`key-value-${setIndex}`).innerText, 10);
+      const time = parseInt(document.getElementById(`time-value-${setIndex}`).innerText, 10);
+      const nos = parseInt(document.getElementById(`nos-value-${setIndex}`).innerText, 10);
+
+      const setTotal = trend + key + time + nos;
+      document.getElementById(totalId).innerText = setTotal;
+
+      updateOverallTotal(); // Her bir set güncellenince genel toplam da güncellenir
+    }
+
+    // Bir setin tüm sayaçlarını sıfırla
+    function resetSet(index, totalId) {
+      const trendId = `trend-value-${index}`;
+      const keyId = `key-value-${index}`;
+      const timeId = `time-value-${index}`;
+      const nosId = `nos-value-${index}`;
+
+      // Tüm sayaçları sıfırla ve yerel depolamayı güncelle
+      document.getElementById(trendId).innerText = 0;
+      document.getElementById(keyId).innerText = 0;
+      document.getElementById(timeId).innerText = 0;
+      document.getElementById(nosId).innerText = 0;
+      localStorage.setItem(trendId, 0);
+      localStorage.setItem(keyId, 0);
+      localStorage.setItem(timeId, 0);
+      localStorage.setItem(nosId, 0);
+
+      // Set toplamını güncelle
+      document.getElementById(totalId).innerText = 0;
+      updateOverallTotal(); // Genel toplamı güncelle
+    }
+
+    // Tüm sayaç setlerinin toplamını hesapla
+    function updateOverallTotal() {
+      let overallTotal = 0;
+      for (let i = 1; i <= numSets; i++) {
+        const trend = parseInt(document.getElementById(`trend-value-${i}`).innerText, 10);
+        const key = parseInt(document.getElementById(`key-value-${i}`).innerText, 10);
+        const time = parseInt(document.getElementById(`time-value-${i}`).innerText, 10);
+        const nos = parseInt(document.getElementById(`nos-value-${i}`).innerText, 10);
+
+        overallTotal += trend + key + time + nos;
+      }
+
+      document.getElementById('overall-total').innerText = overallTotal;
+    }
+
+    // Seçilen öğeleri göster
+    function displaySelectedItems() {
+      const select1 = document.getElementById('select1');
+      const select2 = document.getElementById('select2');
+
+      const selected1 = select1.value;
+      const selected2 = select2.value;
+
+      if (selected1 && selected2) {
+        document.getElementById('selected1').innerText = `Selected: ${selected1}`;
+        document.getElementById('selected2').innerText = `Selected: ${selected2}`;
+        document.getElementById('all-counters').style.display = 'block'; // Göster
+      } else {
+        document.getElementById('selected1').innerText = '';
+        document.getElementById('selected2').innerText = '';
+        document.getElementById('all-counters').style.display = 'none'; // Gizle
+      }
+    }
+
+    // Excel dosyasını indir
+    function downloadExcel() {
+      const data = [];
+      for (let i = 1; i <= numSets; i++) {
+        const trendadi = document.getElementById(`trendadi${i}`).value;
+        const trend = parseInt(document.getElementById(`trend-value-${i}`).innerText, 10);
+        const key = parseInt(document.getElementById(`key-value-${i}`).innerText, 10);
+        const time = parseInt(document.getElementById(`time-value-${i}`).innerText, 10);
+        const nos = parseInt(document.getElementById(`nos-value-${i}`).innerText, 10);
+        const zaman = new Date().toLocaleString();
+
+        data.push({ 'Select 1': document.getElementById('select1').value, 'Select 2': document.getElementById('select2').value, 'TREND&KUMAŞ': trendadi, 'TREND': trend, 'KEY': key, 'TIME': time, 'NOS': nos, 'ZAMAN': zaman });
+      }
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
+      XLSX.writeFile(wb, "data.xlsx");
+    }
+
+    // Sayfa yüklendiğinde tüm değerleri yükle
+    window.onload = loadState;
+  </script>
+
+</body>
+</html>

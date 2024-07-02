@@ -71,6 +71,7 @@
           <option value="Option 1">Option 1</option>
           <option value="Option 2">Option 2</option>
           <option value="Option 3">Option 3</option>
+          <!-- Add more options here as needed -->
         </select>
         <div id="selected1" class="selected-items"></div>
       </div>
@@ -81,6 +82,7 @@
           <option value="Option A">Option A</option>
           <option value="Option B">Option B</option>
           <option value="Option C">Option C</option>
+          <!-- Add more options here as needed -->
         </select>
         <div id="selected2" class="selected-items"></div>
       </div>
@@ -98,18 +100,25 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
   <script>
-    const numSets = 5; // Kaç tane sayaç seti oluşturulacağı
+    const numSets = 15; // Kaç tane sayaç seti oluşturulacağı
     const allCounters = document.getElementById('all-counters');
+    let debounceTimer;
 
     // Tarayıcıda depolanan sayaç ve girdi değerlerini yükle
     function loadState() {
+      const select1 = document.getElementById('select1').value;
+      const select2 = document.getElementById('select2').value;
+      if (!select1 || !select2) return;
+
+      allCounters.innerHTML = '';
+
       for (let i = 1; i <= numSets; i++) {
-        const trendadiId = `trendadi${i}`;
-        const trendId = `trend-value-${i}`;
-        const keyId = `key-value-${i}`;
-        const timeId = `time-value-${i}`;
-        const nosId = `nos-value-${i}`;
-        const totalId = `set-total-${i}`;
+        const trendadiId = `trendadi_${select1}_${select2}_${i}`;
+        const trendId = `trend-value_${select1}_${select2}_${i}`;
+        const keyId = `key-value_${select1}_${select2}_${i}`;
+        const timeId = `time-value_${select1}_${select2}_${i}`;
+        const nosId = `nos-value_${select1}_${select2}_${i}`;
+        const totalId = `set-total_${select1}_${select2}_${i}`;
 
         const savedTrendadi = localStorage.getItem(trendadiId) || `TREND&KUMAŞ ${i}`;
         const savedTrend = parseInt(localStorage.getItem(trendId), 10) || 0;
@@ -151,7 +160,7 @@
             </div>
           </div>
           <h2>Set Total: <span id="${totalId}" class="total">${setTotal}</span>
-          <button class="reset-button" onclick="resetSet(${i}, '${totalId}')">Reset</button></h2><br>
+          <button class="reset-button" onclick="resetSet(${i}, '${totalId}', '${select1}', '${select2}')">Reset</button></h2><br>
         `;
 
         // Tüm seti sayfaya ekle
@@ -162,7 +171,6 @@
     }
 
     // Sayaç değerini değiştir ve ilgili set toplamını güncelle
-    let debounceTimer;
     function changeValue(id, delta, totalId, event) {
       event.preventDefault(); // Zoom olayını engelle
 
@@ -192,48 +200,58 @@
 
     // Belirtilen sayaç setinin toplamını güncelle
     function updateSetTotal(totalId) {
-      const setIndex = totalId.match(/\d+/)[0];
-      const trend = parseInt(document.getElementById(`trend-value-${setIndex}`).innerText, 10);
-      const key = parseInt(document.getElementById(`key-value-${setIndex}`).innerText, 10);
-      const time = parseInt(document.getElementById(`time-value-${setIndex}`).innerText, 10);
-      const nos = parseInt(document.getElementById(`nos-value-${setIndex}`).innerText, 10);
+      const select1 = document.getElementById('select1').value;
+      const select2 = document.getElementById('select2').value;
+      const prefix = `_${select1}_${select2}_`;
+      const index = totalId.split('_').pop();
+      const trend = parseInt(document.getElementById(`trend-value${prefix}${index}`).innerText, 10);
+      const key = parseInt(document.getElementById(`key-value${prefix}${index}`).innerText, 10);
+      const time = parseInt(document.getElementById(`time-value${prefix}${index}`).innerText, 10);
+      const nos = parseInt(document.getElementById(`nos-value${prefix}${index}`).innerText, 10);
 
       const setTotal = trend + key + time + nos;
       document.getElementById(totalId).innerText = setTotal;
 
-      updateOverallTotal(); // Her bir set güncellenince genel toplam da güncellenir
+      updateOverallTotal();
     }
 
     // Bir setin tüm sayaçlarını sıfırla
-    function resetSet(index, totalId) {
-      const trendId = `trend-value-${index}`;
-      const keyId = `key-value-${index}`;
-      const timeId = `time-value-${index}`;
-      const nosId = `nos-value-${index}`;
+    function resetSet(index, totalId, select1, select2) {
+      const prefix = `_${select1}_${select2}_`;
+      const trendadiId = `trendadi${prefix}${index}`;
+      const trendId = `trend-value${prefix}${index}`;
+      const keyId = `key-value${prefix}${index}`;
+      const timeId = `time-value${prefix}${index}`;
+      const nosId = `nos-value${prefix}${index}`;
 
-      // Tüm sayaçları sıfırla ve yerel depolamayı güncelle
+      document.getElementById(trendadiId).value = `TREND&KUMAŞ ${index}`;
       document.getElementById(trendId).innerText = 0;
       document.getElementById(keyId).innerText = 0;
       document.getElementById(timeId).innerText = 0;
       document.getElementById(nosId).innerText = 0;
+
+      localStorage.setItem(trendadiId, `TREND&KUMAŞ ${index}`);
       localStorage.setItem(trendId, 0);
       localStorage.setItem(keyId, 0);
       localStorage.setItem(timeId, 0);
       localStorage.setItem(nosId, 0);
 
-      // Set toplamını güncelle
       document.getElementById(totalId).innerText = 0;
-      updateOverallTotal(); // Genel toplamı güncelle
+      updateOverallTotal();
     }
 
     // Tüm sayaç setlerinin toplamını hesapla
     function updateOverallTotal() {
+      const select1 = document.getElementById('select1').value;
+      const select2 = document.getElementById('select2').value;
       let overallTotal = 0;
+
       for (let i = 1; i <= numSets; i++) {
-        const trend = parseInt(document.getElementById(`trend-value-${i}`).innerText, 10);
-        const key = parseInt(document.getElementById(`key-value-${i}`).innerText, 10);
-        const time = parseInt(document.getElementById(`time-value-${i}`).innerText, 10);
-        const nos = parseInt(document.getElementById(`nos-value-${i}`).innerText, 10);
+        const prefix = `_${select1}_${select2}_`;
+        const trend = parseInt(document.getElementById(`trend-value${prefix}${i}`).innerText, 10);
+        const key = parseInt(document.getElementById(`key-value${prefix}${i}`).innerText, 10);
+        const time = parseInt(document.getElementById(`time-value${prefix}${i}`).innerText, 10);
+        const nos = parseInt(document.getElementById(`nos-value${prefix}${i}`).innerText, 10);
 
         overallTotal += trend + key + time + nos;
       }
@@ -243,35 +261,37 @@
 
     // Seçilen öğeleri göster
     function displaySelectedItems() {
-      const select1 = document.getElementById('select1');
-      const select2 = document.getElementById('select2');
+      const select1 = document.getElementById('select1').value;
+      const select2 = document.getElementById('select2').value;
 
-      const selected1 = select1.value;
-      const selected2 = select2.value;
-
-      if (selected1 && selected2) {
-        document.getElementById('selected1').innerText = `Selected: ${selected1}`;
-        document.getElementById('selected2').innerText = `Selected: ${selected2}`;
-        document.getElementById('all-counters').style.display = 'block'; // Göster
+      if (select1 && select2) {
+        document.getElementById('selected1').innerText = `Selected: ${select1}`;
+        document.getElementById('selected2').innerText = `Selected: ${select2}`;
+        document.getElementById('all-counters').style.display = 'block';
+        loadState();
       } else {
         document.getElementById('selected1').innerText = '';
         document.getElementById('selected2').innerText = '';
-        document.getElementById('all-counters').style.display = 'none'; // Gizle
+        document.getElementById('all-counters').style.display = 'none';
       }
     }
 
     // Excel dosyasını indir
     function downloadExcel() {
+      const select1 = document.getElementById('select1').value;
+      const select2 = document.getElementById('select2').value;
       const data = [];
+
       for (let i = 1; i <= numSets; i++) {
-        const trendadi = document.getElementById(`trendadi${i}`).value;
-        const trend = parseInt(document.getElementById(`trend-value-${i}`).innerText, 10);
-        const key = parseInt(document.getElementById(`key-value-${i}`).innerText, 10);
-        const time = parseInt(document.getElementById(`time-value-${i}`).innerText, 10);
-        const nos = parseInt(document.getElementById(`nos-value-${i}`).innerText, 10);
+        const prefix = `_${select1}_${select2}_`;
+        const trendadi = document.getElementById(`trendadi${prefix}${i}`).value;
+        const trend = parseInt(document.getElementById(`trend-value${prefix}${i}`).innerText, 10);
+        const key = parseInt(document.getElementById(`key-value${prefix}${i}`).innerText, 10);
+        const time = parseInt(document.getElementById(`time-value${prefix}${i}`).innerText, 10);
+        const nos = parseInt(document.getElementById(`nos-value${prefix}${i}`).innerText, 10);
         const zaman = new Date().toLocaleString();
 
-        data.push({ 'Select 1': document.getElementById('select1').value, 'Select 2': document.getElementById('select2').value, 'TREND&KUMAŞ': trendadi, 'TREND': trend, 'KEY': key, 'TIME': time, 'NOS': nos, 'ZAMAN': zaman });
+        data.push({ 'Select 1': select1, 'Select 2': select2, 'TREND&KUMAŞ': trendadi, 'TREND': trend, 'KEY': key, 'TIME': time, 'NOS': nos, 'ZAMAN': zaman });
       }
 
       const ws = XLSX.utils.json_to_sheet(data);
@@ -281,8 +301,7 @@
       XLSX.writeFile(wb, "data.xlsx");
     }
 
-    // Sayfa yüklendiğinde tüm değerleri yükle
-    window.onload = loadState;
+    window.onload = displaySelectedItems;
   </script>
 
 </body>

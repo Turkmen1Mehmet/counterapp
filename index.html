@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -68,12 +69,6 @@
     .selected-items {
       text-align: center;
       font-size: 20px;
-      margin-top: 10px;
-    }
-    .image-preview {
-      max-width: 100px;
-      max-height: 100px;
-      display: block;
       margin-top: 10px;
     }
     #all-counters {
@@ -287,7 +282,6 @@
         const timeId = `time-value_${select1}_${select2}_${select3}_${i}`;
         const nosId = `nos-value_${select1}_${select2}_${select3}_${i}`;
         const totalId = `set-total_${select1}_${select2}_${select3}_${i}`;
-        const imageId = `image_${select1}_${select2}_${select3}_${i}`;
 
         const savedTrendadi = localStorage.getItem(trendadiId) || `TREND&KUMAŞ ${i}`;
         const savedTrend = parseInt(localStorage.getItem(trendId), 10) || 0;
@@ -295,7 +289,6 @@
         const savedTime = parseInt(localStorage.getItem(timeId), 10) || 0;
         const savedNos = parseInt(localStorage.getItem(nosId), 10) || 0;
         const setTotal = savedTrend + savedKey + savedTime + savedNos;
-        const savedImages = JSON.parse(localStorage.getItem(imageId)) || [];
 
         // Sayaç seti HTML'sini oluştur
         const counterSet = `
@@ -331,13 +324,6 @@
           </div>
           <h2>Set Total: <span id="${totalId}" class="total">${setTotal}</span>
           <button class="reset-button" onclick="resetSet(${i}, '${totalId}', '${select1}', '${select2}', '${select3}')">Reset</button></h2><br>
-          <div>
-            <h2>Images</h2>
-            <input type="file" accept="image/*" capture="camera" onchange="handleImageUpload(event, '${imageId}')">
-            <div id="${imageId}">
-              ${savedImages.map(imgSrc => `<img src="${imgSrc}" class="image-preview">`).join('')}
-            </div>
-          </div>
         `;
 
         // Tüm seti sayfaya ekle
@@ -401,21 +387,18 @@
       const keyId = `key-value${prefix}${index}`;
       const timeId = `time-value${prefix}${index}`;
       const nosId = `nos-value${prefix}${index}`;
-      const imageId = `image${prefix}${index}`;
 
       document.getElementById(trendadiId).value = `TREND&KUMAŞ ${index}`;
       document.getElementById(trendId).innerText = 0;
       document.getElementById(keyId).innerText = 0;
       document.getElementById(timeId).innerText = 0;
       document.getElementById(nosId).innerText = 0;
-      document.getElementById(imageId).innerHTML = '';
 
       localStorage.setItem(trendadiId, `TREND&KUMAŞ ${index}`);
       localStorage.setItem(trendId, 0);
       localStorage.setItem(keyId, 0);
       localStorage.setItem(timeId, 0);
       localStorage.setItem(nosId, 0);
-      localStorage.setItem(imageId, JSON.stringify([]));
 
       document.getElementById(totalId).innerText = 0;
       updateOverallTotal();
@@ -461,35 +444,29 @@
       }
     }
 
-    // Resim yükleme işlemi
-    function handleImageUpload(event, imageId) {
-      const file = event.target.files[0];
-      const reader = new FileReader();
-
-      reader.onload = function(e) {
-        const imgSrc = e.target.result;
-        const imageContainer = document.getElementById(imageId);
-        const newImg = document.createElement('img');
-        newImg.src = imgSrc;
-        newImg.classList.add('image-preview');
-        imageContainer.appendChild(newImg);
-
-        // Kaydedilen resimleri güncelle
-        const savedImages = JSON.parse(localStorage.getItem(imageId)) || [];
-        savedImages.push(imgSrc);
-        localStorage.setItem(imageId, JSON.stringify(savedImages));
-      }
-
-      if (file) {
-        reader.readAsDataURL(file);
-      }
-    }
-
     // Excel dosyasını indir
     function downloadExcel() {
       const select1 = document.getElementById('select1').value;
       const select2 = document.getElementById('select2').value;
       const select3 = document.getElementById('select3').value;
+
+      function addLocationToData(data) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+
+          for (let i = 0; i < data.length; i++) {
+            data[i]['Latitude'] = latitude;
+            data[i]['Longitude'] = longitude;
+          }
+
+          exportToExcel(data);
+        }, function(error) {
+          console.error("Error obtaining location: ", error);
+          exportToExcel(data); // Lokasyon bilgisi alınamazsa sadece verileri indir
+        });
+      }
+
       const data = [];
 
       for (let i = 1; i <= numSets; i++) {
@@ -500,22 +477,14 @@
         const time = parseInt(document.getElementById(`time-value${prefix}${i}`).innerText, 10);
         const nos = parseInt(document.getElementById(`nos-value${prefix}${i}`).innerText, 10);
         const zaman = new Date().toLocaleString();
-        const savedImages = JSON.parse(localStorage.getItem(`image_${select1}_${select2}_${select3}_${i}`)) || [];
 
-        data.push({ 
-          'Select 1': select1, 
-          'Select 2': select2, 
-          'Select 3': select3, 
-          'TREND&KUMAŞ': trendadi, 
-          'TREND': trend, 
-          'KEY': key, 
-          'TIME': time, 
-          'NOS': nos, 
-          'ZAMAN': zaman, 
-          'Images': savedImages.join('\n')
-        });
+        data.push({ 'Select 1': select1, 'Select 2': select2, 'Select 3': select3, 'TREND&KUMAŞ': trendadi, 'TREND': trend, 'KEY': key, 'TIME': time, 'NOS': nos, 'ZAMAN': zaman });
       }
 
+      addLocationToData(data);
+    }
+
+    function exportToExcel(data) {
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sheet1");

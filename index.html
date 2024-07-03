@@ -89,6 +89,14 @@
     #download-btn:hover {
       background-color: #45a049;
     }
+    .image-upload-container {
+      margin-top: 15px;
+    }
+    .image-preview {
+      max-width: 100px;
+      max-height: 100px;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -281,12 +289,14 @@
         const timeId = `time-value_${select1}_${select2}_${select3}_${i}`;
         const nosId = `nos-value_${select1}_${select2}_${select3}_${i}`;
         const totalId = `set-total_${select1}_${select2}_${select3}_${i}`;
+        const imageId = `image_${select1}_${select2}_${select3}_${i}`;
 
         const savedTrendadi = localStorage.getItem(trendadiId) || `TREND&KUMAŞ ${i}`;
         const savedTrend = parseInt(localStorage.getItem(trendId), 10) || 0;
         const savedKey = parseInt(localStorage.getItem(keyId), 10) || 0;
         const savedTime = parseInt(localStorage.getItem(timeId), 10) || 0;
         const savedNos = parseInt(localStorage.getItem(nosId), 10) || 0;
+        const savedImage = localStorage.getItem(imageId) || '';
         const setTotal = savedTrend + savedKey + savedTime + savedNos;
 
         // Sayaç seti HTML'sini oluştur
@@ -321,8 +331,12 @@
               <button onclick="changeValue('${nosId}', 1, '${totalId}', event)">+</button>
             </div>
           </div>
+          <div class="image-upload-container">
+            <input type="file" accept="image/*" id="upload_${imageId}" onchange="uploadImage('${imageId}', this)">
+            <img id="${imageId}" src="${savedImage}" class="image-preview" ${savedImage ? '' : 'style="display:none"'}>
+          </div>
           <h2>Set Total: <span id="${totalId}" class="total">${setTotal}</span>
-          <button class="reset-button" onclick="resetSet(${i}, '${totalId}', '${select1}', '${select2}', '${select3}')">Reset</button></h2><br>
+          <button class="reset-button" onclick="resetSet(${i}, '${totalId}', '${select1}', '${select2}', '${select3}', '${imageId}')">Reset</button></h2><br>
         `;
 
         // Tüm seti sayfaya ekle
@@ -379,7 +393,7 @@
     }
 
     // Bir setin tüm sayaçlarını sıfırla
-    function resetSet(index, totalId, select1, select2, select3) {
+    function resetSet(index, totalId, select1, select2, select3, imageId) {
       const prefix = `_${select1}_${select2}_${select3}_`;
       const trendadiId = `trendadi${prefix}${index}`;
       const trendId = `trend-value${prefix}${index}`;
@@ -398,6 +412,11 @@
       localStorage.setItem(keyId, 0);
       localStorage.setItem(timeId, 0);
       localStorage.setItem(nosId, 0);
+
+      const imageElement = document.getElementById(imageId);
+      imageElement.src = '';
+      imageElement.style.display = 'none';
+      localStorage.removeItem(imageId);
 
       document.getElementById(totalId).innerText = 0;
       updateOverallTotal();
@@ -421,6 +440,21 @@
       }
 
       document.getElementById('overall-total').innerText = overallTotal;
+    }
+
+    // Resim yükle ve yerel depoda sakla
+    function uploadImage(imageId, input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        localStorage.setItem(imageId, dataUrl);
+        document.getElementById(imageId).src = dataUrl;
+        document.getElementById(imageId).style.display = 'block';
+      };
+      reader.readAsDataURL(file);
     }
 
     // Seçilen öğeleri göster
@@ -475,9 +509,10 @@
         const key = parseInt(document.getElementById(`key-value${prefix}${i}`).innerText, 10);
         const time = parseInt(document.getElementById(`time-value${prefix}${i}`).innerText, 10);
         const nos = parseInt(document.getElementById(`nos-value${prefix}${i}`).innerText, 10);
+        const image = localStorage.getItem(`image_${select1}_${select2}_${select3}_${i}`);
         const zaman = new Date().toLocaleString();
 
-        data.push({ 'Select 1': select1, 'Select 2': select2, 'Select 3': select3, 'TREND&KUMAŞ': trendadi, 'TREND': trend, 'KEY': key, 'TIME': time, 'NOS': nos, 'ZAMAN': zaman });
+        data.push({ 'Select 1': select1, 'Select 2': select2, 'Select 3': select3, 'TREND&KUMAŞ': trendadi, 'TREND': trend, 'KEY': key, 'TIME': time, 'NOS': nos, 'IMAGE': image, 'ZAMAN': zaman });
       }
 
       addLocationToData(data);

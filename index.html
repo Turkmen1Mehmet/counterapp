@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,7 +30,7 @@
     }
     button {
       touch-action: manipulation;
-      font-size: 80px;
+      font-size: 40px;
       text-align: center;
       height: 70px;
       width: 70px;
@@ -43,6 +42,11 @@
     .total {
       font-size: 40px;
       text-align: center;
+    }
+    .add-remove-buttons button {
+      font-size: 24px; /* Add ve Remove butonlarının puntosu */
+      width: auto; /* Buton genişliğini içeriğe göre ayarla */
+      padding: 10px 20px; /* Buton içeriği için dolgu */
     }
     #overall-total {
       font-size: 80px;
@@ -89,6 +93,18 @@
     }
     #download-btn:hover {
       background-color: #45a049;
+    }
+    .add-remove-buttons {
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    .image-preview {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -250,6 +266,13 @@
       </div>
     </div>
 
+    
+    <div class="add-remove-buttons">
+      <button class="add-remove-button" onclick="addCounterSet()">Ekle</button>
+      <button class="add-remove-button" onclick="removeCounterSet()">Çıkar</button>
+    </div>
+
+
     <div id="all-counters"></div> <!-- Dinamik sayaç setleri burada oluşturulacak -->
 
     <div>
@@ -257,14 +280,26 @@
       <div id="overall-total">0</div>
     </div>
 
-    <button id="download-btn" onclick="downloadExcel()">İndir</button>
+    <button id="download-btn" onclick="downloadExcel()">indir</button>
   </center>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
   <script>
-    const numSets = 5; // Kaç tane sayaç seti oluşturulacağı
+    let numSets = 5; // Başlangıçta kaç tane sayaç seti oluşturulacağı
     const allCounters = document.getElementById('all-counters');
     let debounceTimer;
+
+    function addCounterSet() {
+      numSets++;
+      loadState();
+    }
+
+    function removeCounterSet() {
+      if (numSets > 0) {
+        numSets--;
+        loadState();
+      }
+    }
 
     // Tarayıcıda depolanan sayaç ve girdi değerlerini yükle
     function loadState() {
@@ -478,7 +513,17 @@
         const nos = parseInt(document.getElementById(`nos-value${prefix}${i}`).innerText, 10);
         const zaman = new Date().toLocaleString();
 
-        data.push({ 'Select 1': select1, 'Select 2': select2, 'Select 3': select3, 'TREND&KUMAŞ': trendadi, 'TREND': trend, 'KEY': key, 'TIME': time, 'NOS': nos, 'ZAMAN': zaman });
+        data.push({ 
+          'Select 1': select1, 
+          'Select 2': select2, 
+          'Select 3': select3, 
+          'TREND&KUMAŞ': trendadi, 
+          'TREND': trend, 
+          'KEY': key, 
+          'TIME': time, 
+          'NOS': nos, 
+          'ZAMAN': zaman
+        });
       }
 
       addLocationToData(data);
